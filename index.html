@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>六合彩號碼產生器</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0d0d1a 0%, #1a1040 50%, #0f2460 100%);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; font-family: 'Arial', sans-serif;
+      color: #fff; overflow-x: hidden;
+    }
+
+    /* ── Stars ── */
+    #stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .star {
+      position: absolute; background: #fff; border-radius: 50%;
+      animation: twinkle 3s infinite alternate;
+    }
+    @keyframes twinkle {
+      from { opacity: .15; transform: scale(.8); }
+      to   { opacity: .9;  transform: scale(1.3); }
+    }
+
+    /* ── Container ── */
+    .container {
+      position: relative; z-index: 1;
+      text-align: center; padding: 2.5rem 1.5rem;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 24px; backdrop-filter: blur(10px);
+      max-width: 620px; width: 95%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+
+    h1 {
+      font-size: 2.2rem; letter-spacing: 3px;
+      background: linear-gradient(to right, #f7c948, #ff6b35, #f7c948);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-size: 200%; animation: shimmer 3s linear infinite;
+    }
+    @keyframes shimmer { to { background-position: 200%; } }
+
+    .subtitle { color: #888; font-size: .85rem; margin-top: .3rem; letter-spacing: 1px; }
+
+    /* ── Sections ── */
+    .section { margin-top: 1.8rem; }
+    .section-label {
+      font-size: .75rem; letter-spacing: 2px; text-transform: uppercase;
+      color: #aaa; margin-bottom: .9rem;
+    }
+    .balls-row { display: flex; justify-content: center; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+
+    /* ── Ball ── */
+    .ball-wrap { position: relative; display: flex; flex-direction: column; align-items: center; }
+    .ball {
+      width: 66px; height: 66px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.35rem; font-weight: 900; color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,.5);
+      box-shadow:
+        inset -4px -5px 12px rgba(0,0,0,.35),
+        inset  4px  5px 12px rgba(255,255,255,.3),
+        0 8px 20px rgba(0,0,0,.45);
+      opacity: 0; transform: scale(0);
+      transition: transform .05s;
+    }
+    .ball.red   { background: radial-gradient(circle at 35% 30%, #ff8a8a, #b71c1c); }
+    .ball.blue  { background: radial-gradient(circle at 35% 30%, #64b5f6, #0d47a1); }
+    .ball.green { background: radial-gradient(circle at 35% 30%, #69f0ae, #1b5e20); }
+    .ball.ghost { background: radial-gradient(circle at 35% 30%, #bbb, #555); }
+
+    .ball.popin { animation: popIn .45s cubic-bezier(.175,.885,.32,1.35) forwards; }
+    @keyframes popIn {
+      0%   { opacity:0; transform: scale(0) rotate(540deg); }
+      100% { opacity:1; transform: scale(1) rotate(0deg); }
+    }
+    .ball.spin { animation: spin .08s linear infinite; opacity: 1; transform: scale(1); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .bonus-tag {
+      font-size: .65rem; color: #f7c948; letter-spacing: 1px;
+      margin-top: 6px; white-space: nowrap;
+    }
+
+    .divider {
+      font-size: 1.8rem; color: #f7c94888;
+      padding-bottom: 8px; line-height: 66px;
+    }
+
+    /* ── Button ── */
+    .btn {
+      margin-top: 2rem; padding: 14px 52px;
+      background: linear-gradient(135deg, #f7c948, #ff6b35);
+      border: none; border-radius: 50px;
+      font-size: 1.1rem; font-weight: 700; color: #fff;
+      letter-spacing: 1px; cursor: pointer;
+      box-shadow: 0 8px 28px rgba(247,201,72,.45);
+      transition: transform .25s, box-shadow .25s;
+      position: relative; overflow: hidden;
+    }
+    .btn:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 36px rgba(247,201,72,.65);
+    }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn::after {
+      content: ''; position: absolute;
+      inset: 0; background: rgba(255,255,255,.15);
+      transform: translateX(-100%) skewX(-20deg);
+      transition: transform .4s;
+    }
+    .btn:hover:not(:disabled)::after { transform: translateX(130%) skewX(-20deg); }
+
+    /* ── History ── */
+    .history { margin-top: 2rem; }
+    .history-title { font-size: .75rem; color: #666; letter-spacing: 2px; margin-bottom: .6rem; }
+    .history-list { list-style: none; max-height: 110px; overflow-y: auto; }
+    .history-list::-webkit-scrollbar { width: 4px; }
+    .history-list::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+    .history-item {
+      font-size: .82rem; color: #ccc;
+      padding: .35rem .5rem; border-bottom: 1px solid rgba(255,255,255,.07);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .history-item .bonus-n { color: #f7c948; font-weight: 700; }
+    .history-item .idx { color: #555; font-size: .7rem; }
+
+    /* ── Color legend ── */
+    .legend {
+      display: flex; justify-content: center; gap: 16px;
+      margin-top: 1.4rem; font-size: .7rem; color: #888;
+    }
+    .leg { display: flex; align-items: center; gap: 5px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.red   { background: #e53935; }
+    .dot.blue  { background: #1565c0; }
+    .dot.green { background: #2e7d32; }
+  </style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div class="container">
+  <h1>🎱 六合彩</h1>
+  <p class="subtitle">號碼產生器 · Mark Six · 1–49</p>
+
+  <div class="section">
+    <p class="section-label">攪出號碼</p>
+    <div class="balls-row" id="mainRow">
+      <!-- filled by JS -->
+    </div>
+  </div>
+
+  <div class="section">
+    <p class="section-label">特別號碼</p>
+    <div class="balls-row" id="bonusRow"></div>
+  </div>
+
+  <button class="btn" id="btn" onclick="generate()">🎲 攪珠！</button>
+
+  <div class="legend">
+    <span class="leg"><span class="dot red"></span>紅波</span>
+    <span class="leg"><span class="dot blue"></span>藍波</span>
+    <span class="leg"><span class="dot green"></span>綠波</span>
+  </div>
+
+  <div class="history" id="hist" style="display:none">
+    <p class="history-title">— 歷史記錄 —</p>
+    <ul class="history-list" id="histList"></ul>
+  </div>
+</div>
+
+<script>
+  /* ── Ball colour mapping (official Mark Six) ── */
+  const RED   = new Set([1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46]);
+  const BLUE  = new Set([3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48]);
+  // GREEN = everything else (5,6,11,16,17,21,22,27,28,32,33,38,39,43,44,49)
+
+  function ballColor(n) {
+    if (RED.has(n))  return 'red';
+    if (BLUE.has(n)) return 'blue';
+    return 'green';
+  }
+
+  function fmt(n) { return String(n).padStart(2, '0'); }
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  /* ── Build star field ── */
+  const starEl = document.getElementById('stars');
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() * 2.5 + 0.5;
+    Object.assign(s.style, {
+      width: sz+'px', height: sz+'px',
+      top: Math.random()*100+'%', left: Math.random()*100+'%',
+      animationDelay: Math.random()*4+'s',
+      animationDuration: (2+Math.random()*4)+'s'
+    });
+    starEl.appendChild(s);
+  }
+
+  /* ── Create a ball DOM element ── */
+  function makeBallWrap(num, isBonus=false) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ball-wrap';
+    const ball = document.createElement('div');
+    ball.className = 'ball ghost spin';
+    ball.textContent = '?';
+    wrap.appendChild(ball);
+    if (isBonus) {
+      const tag = document.createElement('div');
+      tag.className = 'bonus-tag';
+      tag.textContent = '特別號碼';
+      wrap.appendChild(tag);
+    }
+    return { wrap, ball };
+  }
+
+  let busy = false;
+  let history = [];
+
+  function generate() {
+    if (busy) return;
+    busy = true;
+    document.getElementById('btn').disabled = true;
+
+    /* Pick numbers */
+    const pool = shuffle([...Array(49)].map((_,i)=>i+1));
+    const mainNums = pool.slice(0,6).sort((a,b)=>a-b);
+    const bonusNum = pool[6];
+
+    /* Clear containers */
+    const mainRow  = document.getElementById('mainRow');
+    const bonusRow = document.getElementById('bonusRow');
+    mainRow.innerHTML = '';
+    bonusRow.innerHTML = '';
+
+    /* Create rolling ghost balls */
+    const slots = [];
+    mainNums.forEach(n => {
+      const {wrap, ball} = makeBallWrap(n, false);
+      mainRow.appendChild(wrap);
+      slots.push({ball, num: n, isBonus: false});
+    });
+
+    // "+" divider
+    const div = document.createElement('span');
+    div.className = 'divider';
+    div.textContent = '+';
+    bonusRow.appendChild(div);
+
+    const {wrap: bw, ball: bb} = makeBallWrap(bonusNum, true);
+    bonusRow.appendChild(bw);
+    slots.push({ball: bb, num: bonusNum, isBonus: true});
+
+    /* Reveal one-by-one */
+    const BASE_DELAY = 500;
+    const STEP = 280;
+
+    slots.forEach(({ball, num}, i) => {
+      setTimeout(() => {
+        ball.classList.remove('spin', 'ghost');
+        ball.className = `ball ${ballColor(num)}`;
+        ball.textContent = fmt(num);
+        void ball.offsetWidth; // reflow
+        ball.classList.add('popin');
+
+        if (i === slots.length - 1) {
+          setTimeout(() => {
+            addHistory(mainNums, bonusNum);
+            document.getElementById('btn').disabled = false;
+            busy = false;
+          }, 450);
+        }
+      }, BASE_DELAY + i * STEP);
+    });
+  }
+
+  function addHistory(mainNums, bonusNum) {
+    history.unshift({mainNums, bonusNum});
+    if (history.length > 6) history.pop();
+
+    const sec = document.getElementById('hist');
+    const list = document.getElementById('histList');
+    sec.style.display = 'block';
+    list.innerHTML = '';
+
+    history.forEach((e, i) => {
+      const li = document.createElement('li');
+      li.className = 'history-item';
+      const main = e.mainNums.map(fmt).join('  ');
+      li.innerHTML = `<span>${main} &nbsp;<span class="bonus-n">＋${fmt(e.bonusNum)}</span></span><span class="idx">#${history.length - i}</span>`;
+      list.appendChild(li);
+    });
+  }
+
+  /* Auto-run on load */
+  window.addEventListener('load', () => setTimeout(generate, 400));
+</script>
+</body>
+</html>
