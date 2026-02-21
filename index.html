@@ -191,9 +191,26 @@
 
   function fmt(n) { return String(n).padStart(2, '0'); }
 
-  function shuffle(arr) {
+  /* ── 密碼學安全隨機整數生成 (CSPRNG) ── */
+  // 獲取 0 至 max (包含) 的隨機整數，並消除模偏差 (Modulo Bias)
+  function getSecureRandomInt(max) {
+    const range = max + 1;
+    const randomBuffer = new Uint32Array(1);
+    const maxUint32 = 4294967295; // 2^32 - 1
+    const limit = maxUint32 - (maxUint32 % range);
+
+    while (true) {
+      window.crypto.getRandomValues(randomBuffer);
+      if (randomBuffer[0] <= limit) {
+        return randomBuffer[0] % range;
+      }
+    }
+  }
+
+  /* ── 密碼學安全洗牌 (Secure Fisher-Yates Shuffle) ── */
+  function secureShuffle(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = getSecureRandomInt(i);
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
@@ -239,8 +256,8 @@
     busy = true;
     document.getElementById('btn').disabled = true;
 
-    /* Pick numbers */
-    const pool = shuffle([...Array(49)].map((_,i)=>i+1));
+    /* Pick numbers using Secure Shuffle */
+    const pool = secureShuffle([...Array(49)].map((_,i)=>i+1));
     const mainNums = pool.slice(0,6).sort((a,b)=>a-b);
     const bonusNum = pool[6];
 
